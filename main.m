@@ -3,7 +3,7 @@ clear all;
 clc;
 
 close all;
-input_dir= 'C:\Users\emreb\Downloads\ECG_DB\ECG_DB\WFDBRecords\01\010';
+input_dir= '....\01\010';
 output_dir='database\';
 parse_signals(input_dir,output_dir)
 plot=false;
