@@ -1,6 +1,6 @@
 % Save this code in a file named analyzeECG.m
 
-function [hrv]=analyzeECG(sig,arrhythmia,index,plot)
+function [hrv,rr_int,RR]=analyzeECG(sig,arrhythmia,index,plot_it)
 
     
     %Low pass filter
@@ -39,12 +39,12 @@ function [hrv]=analyzeECG(sig,arrhythmia,index,plot)
     %Thresholding
     th=int;
     for i=1:length(int)
-        if(int(i)<200)
+        if(int(i)<max(int)/5)
             th(i)=0;
         end
     end
     
-    %Search PeakPoint
+    %Search R-Peaks
     RR=zeros(1,length(th));
     for i=1:length(th)-4
         if(th(i+1)>th(i)&& th(i+2)>th(i+1)&& th(i+2)>th(i+3)&& th(i+3)>th(i+4))
@@ -52,7 +52,7 @@ function [hrv]=analyzeECG(sig,arrhythmia,index,plot)
         end
     end
     
-    %PeakPoint Indexes
+    % R-Peaks Indexes
     j=1;
     for i=1:length(RR)
         if(RR(i)==10000)
@@ -61,14 +61,17 @@ function [hrv]=analyzeECG(sig,arrhythmia,index,plot)
         end
     end
 
-    %PeakPoint Indexes to Heart Rate Convertion 
+    % HRV Calculation using RR Intervals
     j=1;
-    hrv=zeros(1,20);
+    hrv=zeros(1,50);
+    rr_int=zeros(1,50);
+    
     for i=1:length(temp2)-1
-        period=temp2(i+1)-temp2(i);
-        if period>30
-            freq=1/(period/500); %per sec 
-            hrv(j)=freq*60; % per min
+        rr_diff=temp2(i+1)-temp2(i);
+        if rr_diff>100
+            freq=1/(rr_diff/500); %beat per sec 
+            hrv(j)=freq*60; % beat per min
+            rr_int(j)=rr_diff;
             j=j+1;
         end
     end
@@ -76,19 +79,21 @@ function [hrv]=analyzeECG(sig,arrhythmia,index,plot)
     for i=1:length(arrhythmia)
         art=[art, arrhythmia{i}];
     end
-    if plot
-        figure
+    if plot_it
+        figure;
+        set(gcf, 'Visible', 'off');
+        set(gcf, 'WindowState', 'maximized');
         subplot(3,3,1);plot(sig);title ('Input ');
         subplot(3,3,2);plot(lp);title ('LowPass Filter Output');
         subplot(3,3,3);plot(hp);title ('HighPass Filter Output');
         subplot(3,3,4);plot(dif);title ('Differentiation Output');
         subplot(3,3,5);plot(sq);title ('Taking Square Output');
         subplot(3,3,6);plot(int);title ('Taking Integral Output');
-        subplot(3,3,7);plot(th,'r');hold on;stem(RR/10,'g');hold on;title ('Thresholding and PeakPoints(RR) Output');
-        subplot(3,3,8);plot(hrv);title ('HRV (per min) Output');
-        subplot(3,3,8);plot(hrv);title ('HRV (per min) Output');
+        subplot(3,3,7);plot(th,'r');hold on;stem(RR/10,'g');hold on;title ('Thresholding Output vs. R Peaks');
+        subplot(3,3,8);plot(hrv);title ('HRV (bpm) Output');
         subplot(3,3,9);text(0.5, 0.5, art, 'FontSize', 12, 'HorizontalAlignment', 'center');
-        set(gcf, 'Visible', 'off');set(gcf, 'WindowState', 'maximized');
+        
+        
         saveas(gcf, ['database\JS' num2str(index,'%05.f') '.png']);
         close(gcf);
     end
